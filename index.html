@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadibot WA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: monospace; }</style>
+</head>
+<body class="bg-gray-900 text-green-400 min-h-screen">
+    <div class="container mx-auto p-6 max-w-2xl">
+        <h1 class="text-2xl font-bold mb-6 border-b border-green-500 pb-2">🤖 JADIBOT WA DASHBOARD</h1>
+        
+        <!-- QR Section -->
+        <div id="qrSection" class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h2 class="text-lg mb-2">📱 SCAN QR</h2>
+            <p id="qrStatus" class="text-sm text-gray-400 mb-2">Loading...</p>
+            <div id="qrContainer" class="flex justify-center p-4 bg-white rounded"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h2 class="text-lg mb-2">📊 STATUS</h2>
+            <p id="connStatus" class="text-sm">Checking...</p>
+        </div>
+
+        <!-- Send Message -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h2 class="text-lg mb-2">✉️ KIRIM PESAN</h2>
+            <input id="sendTo" placeholder="628xxx" class="w-full p-2 mb-2 bg-gray-700 rounded text-green-400">
+            <textarea id="sendMsg" placeholder="Pesan..." class="w-full p-2 mb-2 bg-gray-700 rounded text-green-400"></textarea>
+            <button onclick="sendMessage()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">KIRIM</button>
+        </div>
+
+        <!-- Logout -->
+        <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">🔓 LOGOUT</button>
+    </div>
+
+    <script>
+        const API_URL = 'https://URL-RENDER-LO.onrender.com'; // GANTI INI
+        const API_KEY = 'rahasia123'; // Samain sama di Render
+
+        async function api(path, options = {}) {
+            const res = await fetch(API_URL + path, {
+                ...options,
+                headers: {
+                    'x-api-key': API_KEY,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            return res.json();
+        }
+
+        async function checkStatus() {
+            try {
+                const data = await api('/status');
+                document.getElementById('connStatus').innerText = data.connected ? '✅ Connected' : '❌ Disconnected';
+                
+                if (!data.connected) {
+                    const qr = await api('/qr');
+                    if (qr.qr) {
+                        document.getElementById('qrStatus').innerText = 'Scan QR ini:';
+                        document.getElementById('qrContainer').innerHTML = `<img src="${qr.qr}" class="w-64 h-64">`;
+                    } else {
+                        document.getElementById('qrStatus').innerText = 'QR belum siap, tunggu...';
+                    }
+                } else {
+                    document.getElementById('qrStatus').innerText = 'Sudah terhubung.';
+                    document.getElementById('qrContainer').innerHTML = '';
+                }
+            } catch (e) {
+                document.getElementById('connStatus').innerText = '⚠️ Error: ' + e.message;
+            }
+        }
+
+        async function sendMessage() {
+            const to = document.getElementById('sendTo').value;
+            const message = document.getElementById('sendMsg').value;
+            const data = await api('/send', {
+                method: 'POST',
+                body: JSON.stringify({ to, message })
+            });
+            alert(JSON.stringify(data));
+        }
+
+        async function logout() {
+            if (!confirm('Yakin logout?')) return;
+            const data = await api('/logout', { method: 'POST' });
+            alert(JSON.stringify(data));
+        }
+
+        checkStatus();
+        setInterval(checkStatus, 10000); // Cek tiap 10 detik
+    </script>
+</body>
+</html>
